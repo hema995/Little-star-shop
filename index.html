@@ -302,7 +302,7 @@
     <div class="section-header reveal">
       <div class="section-tag">⭐ Your Feedback</div>
       <h2 class="section-title">Customer Reviews</h2>
-      <p class="section-desc">تقدر تضيف تقييم مرة واحدة فقط لكل (Email + Username) على نفس الجهاز، مع حماية بسيطة ضد السبام.</p>
+      <p class="section-desc">You can submit one review per (Email + Username) on this device, with basic anti-spam protection.</p>
       <div class="divider"></div>
     </div>
     <form class="review-form reveal" id="reviewForm">
@@ -311,10 +311,10 @@
         <input class="review-input" id="reviewEmail" type="email" placeholder="Email" required>
       </div>
       <input class="review-input" id="websiteField" placeholder="Website" autocomplete="off" tabindex="-1" style="position:absolute;left:-9999px;opacity:0;">
-      <textarea class="review-textarea" id="reviewText" placeholder="اكتب تقييمك..." required maxlength="220"></textarea>
+      <textarea class="review-textarea" id="reviewText" placeholder="Write your review..." required maxlength="220"></textarea>
       <div class="stars-select" id="starsSelect"></div>
-      <button class="btn-primary" type="submit">إرسال التقييم ✨</button>
-      <p class="custom-note">ملاحظة: بدون سيرفر، التخزين محلي في المتصفح فقط.</p>
+      <button class="btn-primary" type="submit">Submit Review ✨</button>
+      <p class="custom-note">Note: without a backend server, data is stored locally in your browser only.</p>
     </form>
     <div class="reviews-list" id="reviewsList"></div>
   </div>
@@ -603,7 +603,7 @@ function getStoredArray(key) {
 function renderReviews() {
   const reviews = getStoredArray(REVIEWS_KEY);
   const list = document.getElementById('reviewsList');
-  list.innerHTML = reviews.length ? '' : '<div class="review-item">لسه مفيش تقييمات. كن أول واحد ⭐</div>';
+  list.innerHTML = reviews.length ? '' : '<div class="review-item">No reviews yet. Be the first one ⭐</div>';
   reviews.slice().reverse().forEach(r => {
     const item = document.createElement('div');
     item.className = 'review-item';
@@ -620,13 +620,13 @@ function initReviewForm() {
     if (document.getElementById('websiteField').value.trim()) return;
     const now = Date.now();
     const lastSubmit = Number(localStorage.getItem(REVIEW_RATE_KEY) || '0');
-    if (now - lastSubmit < 30 * 1000) return alert('استنى 30 ثانية قبل ما تبعت تقييم تاني.');
+    if (now - lastSubmit < 30 * 1000) return alert('Please wait 30 seconds before submitting another review.');
     const username = document.getElementById('reviewUsername').value.trim();
     const email = document.getElementById('reviewEmail').value.trim();
     const text = document.getElementById('reviewText').value.trim();
     const locks = getStoredArray(REVIEW_LOCK_KEY);
     const id = reviewIdentity(username, email);
-    if (locks.includes(id)) return alert('مسموح تقييم واحد فقط لكل Email + Username.');
+    if (locks.includes(id)) return alert('Only one review is allowed per Email + Username.');
     const reviews = getStoredArray(REVIEWS_KEY);
     reviews.push({ username, email, text, rating: selectedRating, date: now });
     locks.push(id);
@@ -637,7 +637,7 @@ function initReviewForm() {
     selectedRating = 5;
     initStarsSelector();
     renderReviews();
-    alert('شكراً! تم إرسال تقييمك.');
+    alert('Thanks! Your review has been submitted.');
   });
 }
 
