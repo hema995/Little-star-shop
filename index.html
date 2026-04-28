@@ -149,6 +149,21 @@
   .about-tagline{font-size:1.1rem;color:var(--text-light);font-weight:600;line-height:1.8;margin-top:1rem;
     max-width:520px;margin-left:auto;margin-right:auto;}
   .about-tagline em{font-style:normal;color:#e87aaa;font-weight:800;}
+  #reviews{background:linear-gradient(160deg,#fff7fb 0%,#f7efff 60%,#fff1f8 100%);}
+  .reviews-container{max-width:850px;margin:0 auto;}
+  .review-form{background:white;border:1.5px solid #ffe0eb;border-radius:22px;padding:1.2rem;box-shadow:var(--shadow-sm);}
+  .review-row{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-bottom:0.8rem;}
+  .review-input,.review-textarea{width:100%;border:1.5px solid #f2d8e1;border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--text);}
+  .review-textarea{min-height:90px;resize:vertical;}
+  .stars-select{display:flex;gap:6px;margin:0.7rem 0 1rem;}
+  .star-btn{border:none;background:transparent;font-size:1.4rem;cursor:pointer;opacity:0.35;transition:all .2s;}
+  .star-btn.active{opacity:1;transform:scale(1.08);}
+  .reviews-list{margin-top:1.2rem;display:grid;gap:0.8rem;}
+  .review-item{background:white;border:1.5px solid #ffe0eb;border-radius:16px;padding:0.9rem 1rem;}
+  .review-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;}
+  .review-user{font-weight:900;color:var(--text);}
+  .review-rating{color:#e87aaa;font-weight:900;}
+  .review-date{font-size:.78rem;color:var(--text-light);font-weight:700;}
 
   footer{background:linear-gradient(135deg,#f9eef5 0%,#ede8ff 100%);padding:3rem 2rem;
     text-align:center;border-top:1.5px solid #ffe0eb;}
@@ -191,6 +206,7 @@
     .products-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;}
     section{padding:60px 1.2rem;}
     .deco-1,.deco-3,.deco-6{display:none;}
+    .review-row{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -215,6 +231,7 @@
     <li><a href="#home" class="nav-link active">Home ✨</a></li>
     <li><a href="#shop" class="nav-link">Shop 🛍️</a></li>
     <li><a href="#custom" class="nav-link">Custom Orders 🎨</a></li>
+    <li><a href="#reviews" class="nav-link">Reviews ⭐</a></li>
     <li><a href="#about" class="nav-link">About 💕</a></li>
   </ul>
 </nav>
@@ -277,6 +294,29 @@
       <a href="https://www.instagram.com/little_star_shop_lads" target="_blank" class="btn-custom">📩 Request Custom Order</a>
       <p class="custom-note">→ Opens Instagram DM · Response within 24 hours</p>
     </div>
+  </div>
+</section>
+
+<section id="reviews">
+  <div class="reviews-container">
+    <div class="section-header reveal">
+      <div class="section-tag">⭐ Your Feedback</div>
+      <h2 class="section-title">Customer Reviews</h2>
+      <p class="section-desc">تقدر تضيف تقييم مرة واحدة فقط لكل (Email + Username) على نفس الجهاز، مع حماية بسيطة ضد السبام.</p>
+      <div class="divider"></div>
+    </div>
+    <form class="review-form reveal" id="reviewForm">
+      <div class="review-row">
+        <input class="review-input" id="reviewUsername" placeholder="Username" required maxlength="30">
+        <input class="review-input" id="reviewEmail" type="email" placeholder="Email" required>
+      </div>
+      <input class="review-input" id="websiteField" placeholder="Website" autocomplete="off" tabindex="-1" style="position:absolute;left:-9999px;opacity:0;">
+      <textarea class="review-textarea" id="reviewText" placeholder="اكتب تقييمك..." required maxlength="220"></textarea>
+      <div class="stars-select" id="starsSelect"></div>
+      <button class="btn-primary" type="submit">إرسال التقييم ✨</button>
+      <p class="custom-note">ملاحظة: بدون سيرفر، التخزين محلي في المتصفح فقط.</p>
+    </form>
+    <div class="reviews-list" id="reviewsList"></div>
   </div>
 </section>
 
@@ -530,6 +570,78 @@ document.querySelectorAll('.nav-link').forEach(link => {
 generateStars();
 renderProducts();
 setTimeout(revealElements, 1500);
+
+const REVIEWS_KEY = 'littleStarReviews';
+const REVIEW_LOCK_KEY = 'littleStarReviewLocks';
+const REVIEW_RATE_KEY = 'littleStarLastSubmitAt';
+let selectedRating = 5;
+
+function initStarsSelector() {
+  const wrap = document.getElementById('starsSelect');
+  wrap.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'star-btn' + (i <= selectedRating ? ' active' : '');
+    b.textContent = '⭐';
+    b.addEventListener('click', () => {
+      selectedRating = i;
+      [...wrap.children].forEach((el, idx) => el.classList.toggle('active', idx < i));
+    });
+    wrap.appendChild(b);
+  }
+}
+
+function reviewIdentity(username, email) {
+  return (username.trim().toLowerCase() + '|' + email.trim().toLowerCase());
+}
+
+function getStoredArray(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+}
+
+function renderReviews() {
+  const reviews = getStoredArray(REVIEWS_KEY);
+  const list = document.getElementById('reviewsList');
+  list.innerHTML = reviews.length ? '' : '<div class="review-item">لسه مفيش تقييمات. كن أول واحد ⭐</div>';
+  reviews.slice().reverse().forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'review-item';
+    item.innerHTML = `<div class="review-head"><div class="review-user">${r.username}</div><div class="review-rating">${'⭐'.repeat(r.rating)}</div></div><div>${r.text}</div><div class="review-date">${new Date(r.date).toLocaleString()}</div>`;
+    list.appendChild(item);
+  });
+}
+
+function initReviewForm() {
+  initStarsSelector();
+  renderReviews();
+  document.getElementById('reviewForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (document.getElementById('websiteField').value.trim()) return;
+    const now = Date.now();
+    const lastSubmit = Number(localStorage.getItem(REVIEW_RATE_KEY) || '0');
+    if (now - lastSubmit < 30 * 1000) return alert('استنى 30 ثانية قبل ما تبعت تقييم تاني.');
+    const username = document.getElementById('reviewUsername').value.trim();
+    const email = document.getElementById('reviewEmail').value.trim();
+    const text = document.getElementById('reviewText').value.trim();
+    const locks = getStoredArray(REVIEW_LOCK_KEY);
+    const id = reviewIdentity(username, email);
+    if (locks.includes(id)) return alert('مسموح تقييم واحد فقط لكل Email + Username.');
+    const reviews = getStoredArray(REVIEWS_KEY);
+    reviews.push({ username, email, text, rating: selectedRating, date: now });
+    locks.push(id);
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews));
+    localStorage.setItem(REVIEW_LOCK_KEY, JSON.stringify(locks));
+    localStorage.setItem(REVIEW_RATE_KEY, String(now));
+    document.getElementById('reviewForm').reset();
+    selectedRating = 5;
+    initStarsSelector();
+    renderReviews();
+    alert('شكراً! تم إرسال تقييمك.');
+  });
+}
+
+initReviewForm();
 </script>
 </body>
 </html>
